@@ -1,3 +1,4 @@
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from .models import Cart, CartItem, Product
@@ -10,8 +11,8 @@ from .filters import *
 from .permissions import *
 
 
-class CartViewSet(viewsets.ViewSet):
 
+class CartViewSet(viewsets.ViewSet):
     def retrieve(self, request, pk=None):
         cart = get_object_or_404(Cart, cart_user=pk)
         serializer = CartSerializer(cart)
@@ -56,6 +57,7 @@ class CartViewSet(viewsets.ViewSet):
         return Response({"message": "Cart cleared successfully"}, status=status.HTTP_204_NO_CONTENT)
 
     def get_permissions(self):
+        print(f"User: {self.request.user}, Action: {self.action}")
         if self.action in ['list', 'retrieve']:
             permission_classes = [IsAdmin | IsClient | IsCourier | CheckOwner]
         elif self.action in ['create', 'update', 'partial_update', 'destroy']:
@@ -65,6 +67,7 @@ class CartViewSet(viewsets.ViewSet):
         else:
             permission_classes = [IsAdmin]
         return [perm() for perm in permission_classes]
+
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset =  UserProfile.objects.all()
@@ -78,6 +81,7 @@ class UserDetailViewSet(generics.RetrieveAPIView):
     serializer_class = UserSerializer
     permission_classes = [IsOwnProfile, IsAdmin]
 
+
 class StoreListAPIView(generics.ListAPIView):
     queryset = Store.objects.all()
     serializer_class = StoreListSerializer
@@ -89,8 +93,13 @@ class StoreDetailAPIView(generics.RetrieveAPIView):
     serializer_class = StoreDetailSerializer
 
 class StoreCreateAPIView(generics.CreateAPIView):
+    queryset = Store.objects.all()
     serializer_class = StoreSerializer
     permission_classes = [CheckOwner, IsAdmin]
+
+    def post(self, request, *args, **kwargs):
+        return Response({"message": "Store created successfully"})
+
 
 class StoreOwnerListAPIView(generics.ListAPIView):
     queryset = Store.objects.all()
@@ -125,6 +134,12 @@ class ProductOwnerEditAPIView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = ProductSerializer
     permission_classes = [CheckOwner, CheckOwnerEdit, IsAdmin]
 
+class ReviewListAPIView(generics.ListAPIView):
+    queryset = Review.objects.all()
+    serializer_class = ReviewSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = ReviewFilter
+
 class ReviewCreateAPIView(generics.CreateAPIView):
     queryset =  Review.objects.all()
     serializer_class = ReviewDetailSerializer
@@ -137,10 +152,6 @@ class ReviewEditCreateAPIView(generics.RetrieveUpdateDestroyAPIView):
 
     def get_queryset(self):
         return Review.objects.all.filter(user=self.request.user)
-
-class ReviewCourierAPIView(generics.ListAPIView):
-    queryset = Review.objects.all()
-    serializer_class = ReviewCourierSerializer
 
 class ContactUsListView(viewsets.ModelViewSet):
     queryset = ContactUs.objects.all()
@@ -159,7 +170,7 @@ class ContactUsCreateAPIView(generics.CreateAPIView):
 
 class DiscountListAPIView(generics.ListAPIView):
     queryset = Discount.objects.all()
-    serializers_class = DiscountListSerializer
+    serializer_class = DiscountListSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter]
     filterset_class = DiscountFilter
     search_fields = ['name', 'discount_type']
@@ -180,12 +191,57 @@ class DiscountOwnerEditAPIView(generics.RetrieveUpdateDestroyAPIView):
 
 class DiscountOwnerListAPIView(generics.ListAPIView):
     queryset = Store.objects.all()
-    serializer_class =DiscountListSerializer
+    serializer_class = DiscountListSerializer
     permission_classes = [CheckOwner, IsAdmin]
 
     def get_queryset(self):
         user_instance = self.request.user
         return Discount.objects.filter(store__owner=user_instance)
 
+class ComboListAPIView(generics.ListAPIView):
+    queryset = Combo.objects.all()
+    serializer_class = ComboListSerializer
 
+class ComboDetailAPIView(generics.ListAPIView):
+    queryset = Combo.objects.all()
+    serializer_class = ComboDetailSerializer
+
+class CourierReviewAPIView(generics.ListAPIView):
+    queryset = Review.objects.all()
+    serializer_class = ReviewCourierSerializer
+
+class CourierListAPIView(generics.ListAPIView):
+    queryset = Courier.objects.all()
+    serializer_class = CourierSimpleSerializer
+
+class CourierDetailAPIView(generics.ListAPIView):
+    queryset = Courier.objects.all()
+    serializer_class = CourierDetailSerializer
+    permission_classes = [IsCourier, IsOwnProfile, IsAdmin, CheckOwner]
+
+class CategoryAPIView(generics.ListAPIView):
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+    filter_backends = [DjangoFilterBackend, SearchFilter]
+    filterset_class = CategoryFilter
+    search_fields = ['category_name']
+
+class OrderListAPIView(generics.ListAPIView):
+    queryset = Order.objects.all()
+    serializers_class = OrderListSerializer
+    filter_backends = [DjangoFilterBackend]
+    permission_classes = [IsOwnProfile, IsAdmin, IsCourier, CheckOwner]
+
+class OrderDetailAPIView(generics.RetrieveAPIView):
+    queryset = Order.objects.all()
+    serializer_class = OrderDetailSerializer
+
+class OrderCreateAPIView(generics.CreateAPIView):
+    queryset = Order.objects.all()
+    serializer_class = OrderSerializer
+
+class OrderOwnerEditAPIView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Order.objects.all()
+    serializer_class = OrderSerializer
+    permission_classes = [CheckOwner, CheckOwnerEdit, IsAdmin]
 

@@ -21,10 +21,11 @@ class CategoryFilter(FilterSet):
 
 class DiscountFilter(filters.FilterSet):
     store = filters.ModelMultipleChoiceFilter(
-        field_name='stores__name',
-        to_field_name='name',
+        field_name='store__store_name',
+        to_field_name='store_name',
         queryset=Store.objects.all()
     )
+
     class Meta:
         model = Discount
-        fields = ['store', 'active', 'discount_type']
+        fields = ['active', 'discount_type', 'store']
